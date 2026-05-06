@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой AI Бот</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1 id="bot-title">🤖 Мой AI Бот</h1>
+            <div class="header-controls">
+                <select id="model-select" title="Выбор модели">
+                    <option value="">Загрузка...</option>
+                </select>
+                <button id="files-btn" title="Файлы">📁</button>
+                <button id="clear-btn" title="Очистить чат">🗑️</button>
+            </div>
+        </header>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Привет! Я твой AI-ассистент. Задай мне любой вопрос! 🚀
+                    <br><br>
+                    Я знаю все языки программирования и могу помочь с кодом.
+                    <br>Также ты можешь загружать файлы (📎 внизу) — фото, музыку, zip и любые другие.
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель файлов -->
+        <div class="files-panel" id="files-panel" style="display: none;">
+            <div class="files-header">
+                <h3>📁 Загруженные файлы</h3>
+                <button id="close-files-btn">✕</button>
+            </div>
+            <div class="files-list" id="files-list">
+                <p class="no-files">Нет загруженных файлов</p>
+            </div>
+        </div>
+
+        <div class="status-bar" id="status-bar" style="display: none;">
+            <span id="status-text"></span>
+        </div>
+
+        <form class="chat-input-form" id="chat-form">
+            <label class="attach-btn" title="Прикрепить файл">
+                <input type="file" id="file-input" multiple hidden>
+                📎
+            </label>
+            <textarea
+                id="user-input"
+                placeholder="Напиши сообщение..."
+                rows="1"
+                autofocus
+            ></textarea>
+            <button type="submit" id="send-btn" title="Отправить">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

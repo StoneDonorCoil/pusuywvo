@@ -1,0 +1,21 @@
+[project]
+name = "my-ai-bot"
+version = "1.0.0"
+description = "Полностью свой AI-бот с веб-интерфейсом, работающий на локальной модели через Ollama"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "httpx>=0.25.0",
+    "python-multipart>=0.0.6",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.1.0",
+]
