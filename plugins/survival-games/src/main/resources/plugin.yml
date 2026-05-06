@@ -1,0 +1,18 @@
+name: SurvivalGames
+main: com.mcevents.survivalgames.SurvivalGamesPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Голодные Игры — классический ивент на выживание с сужающейся границей"
+commands:
+  sg:
+    description: "Основная команда SurvivalGames"
+    usage: "/sg <join|leave|list|create|setspawn|setlobby|start|stop|reload>"
+    permission: sg.use
+permissions:
+  sg.use:
+    description: "Доступ к базовым командам SG"
+    default: true
+  sg.admin:
+    description: "Администрирование арен SG"
+    default: op

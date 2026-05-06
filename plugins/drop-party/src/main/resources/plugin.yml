@@ -1,0 +1,18 @@
+name: DropParty
+main: com.mcevents.dropparty.DropPartyPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Дроп-Пати — предметы падают с неба, собери больше всех!"
+commands:
+  dp:
+    description: "Основная команда DropParty"
+    usage: "/dp <start|stop|setzone|top|reload>"
+    permission: dp.use
+permissions:
+  dp.use:
+    description: "Доступ к базовым командам DP"
+    default: true
+  dp.admin:
+    description: "Администрирование DropParty"
+    default: op

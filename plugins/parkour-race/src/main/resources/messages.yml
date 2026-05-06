@@ -1,0 +1,18 @@
+# ============================================
+#     PARKOUR RACE — СООБЩЕНИЯ
+# ============================================
+
+only-players: "&cЭта команда только для игроков!"
+no-permission: "&cУ вас нет прав!"
+race-not-active: "&cГонка не активна!"
+
+race-started: "&a&l★ ПАРКУР-ГОНКА! ★\n&eВремя: &c{time} минут\n&eЧекпоинтов: &c{checkpoints}\n&eПрисоединяйтесь: &a/parkour join"
+race-ended: "&6&l★ ПАРКУР-ГОНКА ЗАВЕРШЕНА! ★"
+
+joined: "&aВы присоединились к гонке! Чекпоинтов: {checkpoints}"
+left: "&eВы покинули гонку."
+
+checkpoint-reached: "&a&lЧЕКПОИНТ {cp}/{total}! &7Время: {time}"
+player-finished: "&6{player} &eфинишировал! &7Место: #{place} | Время: {time}"
+
+time-remaining: "&eОсталось: &c{time} &eсекунд!"

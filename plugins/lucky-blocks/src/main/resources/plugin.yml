@@ -1,0 +1,18 @@
+name: LuckyBlocks
+main: com.mcevents.luckyblocks.LuckyBlocksPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Лаки-Блоки — ивент с рандомными наградами и ловушками"
+commands:
+  lb:
+    description: "Основная команда LuckyBlocks"
+    usage: "/lb <join|leave|score|top|start|stop|place|reload>"
+    permission: lb.use
+permissions:
+  lb.use:
+    description: "Доступ к базовым командам LB"
+    default: true
+  lb.admin:
+    description: "Администрирование LuckyBlocks"
+    default: op

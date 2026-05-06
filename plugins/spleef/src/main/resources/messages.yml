@@ -1,0 +1,19 @@
+# ============================================
+#     SPLEEF — СООБЩЕНИЯ
+# ============================================
+
+only-players: "&cЭта команда только для игроков!"
+no-permission: "&cУ вас нет прав!"
+game-in-progress: "&cИгра уже идёт!"
+game-full: "&cВсе места заняты!"
+
+player-joined: "&a{player} &eприсоединился! &7[{count}/{max}]"
+left: "&eВы покинули Spleef."
+countdown: "&eИгра начнётся через &c{seconds} &eсекунд!"
+
+game-started: "&b&lSPLEEF! &eЛомайте блоки под ногами противников!"
+time-left: "&eОсталось: &c{time} &eсекунд!"
+
+player-eliminated: "&c{player} &eвыбыл! &7Осталось: {remaining}"
+winner: "&6&l★ ПОБЕДИТЕЛЬ: {player} ★"
+draw: "&eИгра окончена! Ничья."

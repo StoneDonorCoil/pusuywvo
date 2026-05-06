@@ -1,0 +1,18 @@
+name: Spleef
+main: com.mcevents.spleef.SpleefPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Spleef — классический ивент с разрушением блоков"
+commands:
+  spleef:
+    description: "Основная команда Spleef"
+    usage: "/spleef <join|leave|start|stop|setspawn|setfall|reload>"
+    permission: spleef.use
+permissions:
+  spleef.use:
+    description: "Доступ к базовым командам Spleef"
+    default: true
+  spleef.admin:
+    description: "Администрирование Spleef"
+    default: op

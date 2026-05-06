@@ -1,0 +1,22 @@
+# ============================================
+#     MOB ARENA — СООБЩЕНИЯ
+# ============================================
+
+only-players: "&cЭта команда только для игроков!"
+no-permission: "&cУ вас нет прав!"
+arena-in-progress: "&cАрена уже запущена!"
+
+joined: "&aВы присоединились к MobArena! Жизни: &e{lives}"
+left: "&eВы покинули MobArena."
+
+arena-started: "&4&l⚔ АРЕНА МОБОВ ⚔\n&eПриготовьтесь к {waves} волнам мобов!\n&eУбивайте мобов и выживайте!"
+wave-started: "&e&lВОЛНА {wave}/{total} &7— Приготовьтесь!"
+boss-wave: "&c&l⚠ ВОЛНА БОССА {wave}/{total} ⚠ &7— Мощные мобы!"
+wave-complete: "&a&lВолна {wave} пройдена!"
+
+life-lost: "&cВы потеряли жизнь! &eОсталось: {lives}"
+eliminated: "&c&lВы выбыли из арены!"
+player-eliminated: "&c{player} выбыл! &7Осталось: {remaining}"
+
+arena-victory: "&6&l★ ПОБЕДА! Все {waves} волн пройдены! ★"
+arena-defeat: "&c&lПОРАЖЕНИЕ! Команда проиграла на волне {wave}."

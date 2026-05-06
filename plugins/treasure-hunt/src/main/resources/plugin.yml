@@ -1,0 +1,18 @@
+name: TreasureHunt
+main: com.mcevents.treasurehunt.TreasureHuntPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Охота за Сокровищами — ивент с подсказками и рейтингом"
+commands:
+  th:
+    description: "Основная команда TreasureHunt"
+    usage: "/th <hint|score|top|start|stop|addtreasure|removetreasure|list|reload>"
+    permission: th.use
+permissions:
+  th.use:
+    description: "Доступ к базовым командам TH"
+    default: true
+  th.admin:
+    description: "Администрирование TreasureHunt"
+    default: op

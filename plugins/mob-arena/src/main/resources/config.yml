@@ -1,0 +1,73 @@
+# ============================================
+#     MOB ARENA — НАСТРОЙКИ
+# ============================================
+# Волновая арена мобов с нарастающей сложностью
+# ============================================
+
+settings:
+  # Общее количество волн
+  total-waves: 15
+
+  # Жизни у каждого игрока
+  player-lives: 3
+
+  # Базовое количество мобов в первой волне
+  base-mob-count: 5
+
+  # На сколько мобов увеличивается каждая волна
+  mobs-increase-per-wave: 2
+
+  # Перерыв между волнами (секунды)
+  break-between-waves: 10
+
+  # Волны с боссами (номера волн)
+  boss-waves:
+    - 5
+    - 10
+    - 15
+
+  # HP босса
+  boss-health: 100
+
+  # Количество боссов на волне
+  boss-mob-count: 3
+
+  # Мобы по сложности
+  # Лёгкие (волны 1-5)
+  easy-mobs:
+    - "Zombie"
+    - "Skeleton"
+    - "Spider"
+
+  # Средние (волны 6-10)
+  medium-mobs:
+    - "Zombie"
+    - "Skeleton"
+    - "Spider"
+    - "Creeper"
+    - "CaveSpider"
+
+  # Сложные (волны 11+)
+  hard-mobs:
+    - "Zombie"
+    - "Skeleton"
+    - "Creeper"
+    - "Enderman"
+    - "Blaze"
+    - "Witch"
+
+  # Типы мобов-боссов
+  boss-mob-types:
+    - "Zombie"
+    - "Skeleton"
+
+  # Награды
+  rewards:
+    per-kill-money: 10
+    wave-complete-money: 50
+    victory-money: 500
+
+# Арена
+# Спавн игроков: /ma setspawn
+# Точки спавна мобов: /ma setmobspawn <номер>
+arena: {}

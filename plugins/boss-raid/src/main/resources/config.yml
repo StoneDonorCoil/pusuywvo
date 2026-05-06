@@ -1,0 +1,56 @@
+# ============================================
+#     BOSS RAID — НАСТРОЙКИ
+# ============================================
+# Совместный рейд на кастомного босса
+# Игроки наносят урон, награды по вкладу
+# ============================================
+
+# Настройки боссов
+# Каждый тип босса имеет свои параметры
+bosses:
+  # Пример: Зомби-король
+  zombie-king:
+    # Отображаемое имя босса
+    display-name: "Зомби-Король"
+    # Тип сущности Nukkit (Zombie, Skeleton, Creeper, Spider, Enderman, и т.д.)
+    entity-type: "Zombie"
+    # Максимальное здоровье босса
+    max-health: 500.0
+    # Количество фаз (при каждой фазе — объявление)
+    phases: 3
+    # Ограничение по времени (в секундах)
+    time-limit: 600
+    # Награды
+    rewards:
+      # Базовые деньги каждому участнику
+      base-money: 200
+      # Бонус для топ-3 (делится на место: 1й=full, 2й=half, 3й=third)
+      top-bonus: 500
+    # Точка спавна (устанавливается через /boss setspawn zombie-king)
+    # spawn:
+    #   world: "world"
+    #   x: 0.0
+    #   y: 64.0
+    #   z: 0.0
+
+  # Пример: Скелет-Лорд
+  skeleton-lord:
+    display-name: "Скелет-Лорд"
+    entity-type: "Skeleton"
+    max-health: 750.0
+    phases: 4
+    time-limit: 900
+    rewards:
+      base-money: 300
+      top-bonus: 750
+
+  # Пример: Огненный Элементаль
+  fire-elemental:
+    display-name: "Огненный Элементаль"
+    entity-type: "Blaze"
+    max-health: 1000.0
+    phases: 5
+    time-limit: 1200
+    rewards:
+      base-money: 500
+      top-bonus: 1000

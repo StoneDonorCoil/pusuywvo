@@ -1,0 +1,18 @@
+name: MobArena
+main: com.mcevents.mobarena.MobArenaPlugin
+version: "1.0.0"
+api: ["1.0.0"]
+author: MCEvents
+description: "Арена Мобов — волновой ивент с магазином и боссами"
+commands:
+  ma:
+    description: "Основная команда MobArena"
+    usage: "/ma <join|leave|info|start|stop|setspawn|setmobspawn|reload>"
+    permission: ma.use
+permissions:
+  ma.use:
+    description: "Доступ к базовым командам MA"
+    default: true
+  ma.admin:
+    description: "Администрирование MobArena"
+    default: op

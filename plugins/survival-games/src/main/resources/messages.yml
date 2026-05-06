@@ -1,0 +1,38 @@
+# ============================================
+#     SURVIVAL GAMES — СООБЩЕНИЯ
+# ============================================
+# Все сообщения можно кастомизировать
+# Поддерживаются цвета через &
+# Плейсхолдеры: {player}, {arena}, {count}, {max}, {seconds}, {kills}, {remaining}, {money}, {xp}
+# ============================================
+
+# Общие
+only-players: "&cЭта команда только для игроков!"
+no-permission: "&cУ вас нет прав на эту команду!"
+arena-not-found: "&cАрена {arena} не найдена!"
+already-in-game: "&cВы уже находитесь в игре!"
+not-in-game: "&cВы не находитесь в игре!"
+arena-full: "&cАрена заполнена!"
+usage-join: "&eИспользование: /sg join <арена>"
+
+# Лобби
+player-joined: "&a{player} &eприсоединился к игре! &7[{count}/{max}]"
+player-left: "&c{player} &eпокинул игру! &7[{count}]"
+not-enough-players: "&cНедостаточно игроков! Обратный отсчёт отменён."
+game-starting: "&eИгра начнётся через &c{seconds} &eсекунд!"
+
+# Игра
+game-started: "&a&lИГРА НАЧАЛАСЬ! &eSражайтесь и выживайте!"
+game-already-started: "&cИгра уже идёт! Подождите окончания."
+player-killed: "&c{victim} &eбыл убит игроком &a{killer}&e! &7Осталось: {remaining}"
+player-died: "&c{player} &eпогиб! &7Осталось: {remaining}"
+border-shrinking: "&c&lВНИМАНИЕ! &eГраница сужается! Двигайтесь к центру!"
+
+# Deathmatch
+deathmatch-countdown: "&eDeathmatch через &c{seconds} &eсекунд!"
+deathmatch-started: "&c&lDEATHMATCH! &eВсе телепортированы в центр! Бой до последнего!"
+
+# Конец игры
+game-winner: "&6&l★ ПОБЕДИТЕЛЬ: &e{player} &6(убийств: {kills}) ★"
+game-draw: "&eИгра окончена! Победителя нет."
+reward-received: "&aНаграда получена! &e+{money} монет, +{xp} опыта"

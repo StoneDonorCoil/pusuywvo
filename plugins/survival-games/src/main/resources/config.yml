@@ -1,0 +1,101 @@
+# ============================================
+#     SURVIVAL GAMES — НАСТРОЙКИ
+# ============================================
+# Плагин "Голодные Игры" для Minecraft Bedrock
+# Все настройки подробно описаны ниже
+# ============================================
+
+settings:
+  # Минимальное количество игроков для старта игры
+  min-players: 4
+
+  # Максимальное количество игроков на арене
+  max-players: 24
+
+  # Обратный отсчёт в лобби перед началом (в секундах)
+  lobby-countdown: 30
+
+  # Длительность основной фазы игры (в секундах)
+  # После этого времени начинается Deathmatch
+  game-time: 600
+
+  # Длительность фазы Deathmatch (в секундах)
+  deathmatch-time: 120
+
+  # Настройки границы
+  border:
+    # Как часто сужается граница (в секундах)
+    shrink-interval: 60
+    # На сколько блоков сужается граница за раз
+    shrink-amount: 5.0
+
+  # Награды за победу
+  rewards:
+    # Деньги за победу (нужен плагин экономики)
+    win-money: 500
+    # Опыт за победу
+    win-xp: 100
+    # Деньги за убийство
+    kill-money: 50
+
+  # Таблица лута для сундуков
+  # id — ID предмета в Minecraft
+  # damage — мета/дамаг предмета (0 по умолчанию)
+  # max-count — макс. количество в стаке
+  # chance — шанс появления (1-100)
+  loot-table:
+    wooden-sword:
+      id: 268
+      damage: 0
+      max-count: 1
+      chance: 80
+    stone-sword:
+      id: 272
+      damage: 0
+      max-count: 1
+      chance: 40
+    iron-sword:
+      id: 267
+      damage: 0
+      max-count: 1
+      chance: 15
+    leather-chestplate:
+      id: 299
+      damage: 0
+      max-count: 1
+      chance: 50
+    iron-chestplate:
+      id: 307
+      damage: 0
+      max-count: 1
+      chance: 10
+    apple:
+      id: 260
+      damage: 0
+      max-count: 5
+      chance: 70
+    golden-apple:
+      id: 322
+      damage: 0
+      max-count: 1
+      chance: 5
+    bow:
+      id: 261
+      damage: 0
+      max-count: 1
+      chance: 30
+    arrows:
+      id: 262
+      damage: 0
+      max-count: 16
+      chance: 40
+    steak:
+      id: 364
+      damage: 0
+      max-count: 8
+      chance: 60
+
+# Арены создаются через /sg create <название>
+# Спавны устанавливаются через /sg setspawn <арена> <номер>
+# Лобби устанавливается через /sg setlobby <арена>
+arenas: {}
