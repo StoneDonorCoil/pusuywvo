@@ -1,5 +1,5 @@
 /**
- * Мой AI Бот — клиентская логика чата
+ * Мой AI Бот — клиентская логика чата с поддержкой файлов
  */
 
 const chatMessages = document.getElementById('chat-messages');
@@ -8,6 +8,11 @@ const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 const modelSelect = document.getElementById('model-select');
 const clearBtn = document.getElementById('clear-btn');
+const filesBtn = document.getElementById('files-btn');
+const filesPanel = document.getElementById('files-panel');
+const filesList = document.getElementById('files-list');
+const closeFilesBtn = document.getElementById('close-files-btn');
+const fileInput = document.getElementById('file-input');
 const statusBar = document.getElementById('status-bar');
 const statusText = document.getElementById('status-text');
 const botTitle = document.getElementById('bot-title');
@@ -21,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadModels();
     checkHealth();
     autoResizeTextarea();
+    setupFileHandlers();
 });
 
 // Загрузка конфигурации
@@ -74,6 +80,105 @@ async function checkHealth() {
         showStatus('⚠️ Сервер недоступен');
     }
 }
+
+// === ФАЙЛЫ ===
+
+function setupFileHandlers() {
+    // Кнопка открытия панели файлов
+    filesBtn.addEventListener('click', () => {
+        filesPanel.style.display = filesPanel.style.display === 'none' ? 'block' : 'none';
+        if (filesPanel.style.display === 'block') loadFilesList();
+    });
+
+    closeFilesBtn.addEventListener('click', () => {
+        filesPanel.style.display = 'none';
+    });
+
+    // Загрузка файлов
+    fileInput.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        if (!files.length) return;
+
+        for (const file of files) {
+            await uploadFile(file);
+        }
+        fileInput.value = '';
+    });
+}
+
+async function uploadFile(file) {
+    showStatus(`📤 Загрузка: ${file.name}...`);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        const data = await res.json();
+
+        if (data.status === 'ok') {
+            const fileInfo = data.file;
+            const sizeStr = formatFileSize(fileInfo.size);
+
+            // Показать в чате
+            addMessage('user', `📎 Загружен файл: ${fileInfo.original_name} (${sizeStr})`);
+
+            // Сообщить боту о файле
+            conversationHistory.push({
+                role: 'user',
+                content: `Я загрузил файл: "${fileInfo.original_name}" (${sizeStr}, тип: ${fileInfo.content_type}). Файл доступен для скачивания.`
+            });
+
+            await generateResponse();
+            hideStatus();
+        } else {
+            addMessage('bot', `❌ Ошибка загрузки: ${data.message}`);
+            hideStatus();
+        }
+    } catch (e) {
+        addMessage('bot', `❌ Ошибка загрузки файла: ${e.message}`);
+        hideStatus();
+    }
+}
+
+async function loadFilesList() {
+    try {
+        const res = await fetch('/api/files');
+        const data = await res.json();
+
+        if (data.files.length === 0) {
+            filesList.innerHTML = '<p class="no-files">Нет загруженных файлов</p>';
+            return;
+        }
+
+        filesList.innerHTML = data.files.map(f => `
+            <div class="file-item">
+                <span class="file-name">${f.name}</span>
+                <span class="file-size">${formatFileSize(f.size)}</span>
+                <div class="file-actions">
+                    <a href="/api/files/${f.id}" download class="file-download" title="Скачать">⬇️</a>
+                    <button onclick="deleteFileItem('${f.id}')" class="file-delete" title="Удалить">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        filesList.innerHTML = '<p class="no-files">Ошибка загрузки списка</p>';
+    }
+}
+
+async function deleteFileItem(fileId) {
+    try {
+        await fetch(`/api/files/${fileId}`, { method: 'DELETE' });
+        loadFilesList();
+    } catch (e) {
+        console.error('Ошибка удаления:', e);
+    }
+}
+
+// === ЧАТ ===
 
 // Отправка сообщения
 chatForm.addEventListener('submit', async (e) => {
@@ -193,4 +298,11 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' ГБ';
 }

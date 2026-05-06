@@ -14,6 +14,7 @@
                 <select id="model-select" title="Выбор модели">
                     <option value="">Загрузка...</option>
                 </select>
+                <button id="files-btn" title="Файлы">📁</button>
                 <button id="clear-btn" title="Очистить чат">🗑️</button>
             </div>
         </header>
@@ -22,7 +23,21 @@
             <div class="message bot-message">
                 <div class="message-content">
                     Привет! Я твой AI-ассистент. Задай мне любой вопрос! 🚀
+                    <br><br>
+                    Я знаю все языки программирования и могу помочь с кодом.
+                    <br>Также ты можешь загружать файлы (📎 внизу) — фото, музыку, zip и любые другие.
                 </div>
+            </div>
+        </div>
+
+        <!-- Панель файлов -->
+        <div class="files-panel" id="files-panel" style="display: none;">
+            <div class="files-header">
+                <h3>📁 Загруженные файлы</h3>
+                <button id="close-files-btn">✕</button>
+            </div>
+            <div class="files-list" id="files-list">
+                <p class="no-files">Нет загруженных файлов</p>
             </div>
         </div>
 
@@ -31,6 +46,10 @@
         </div>
 
         <form class="chat-input-form" id="chat-form">
+            <label class="attach-btn" title="Прикрепить файл">
+                <input type="file" id="file-input" multiple hidden>
+                📎
+            </label>
             <textarea
                 id="user-input"
                 placeholder="Напиши сообщение..."

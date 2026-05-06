@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
-    model_name: str = "llama3"
+    model_name: str = "tinyllama"
     app_title: str = "Мой AI Бот"
     app_host: str = "0.0.0.0"
     app_port: int = 8000

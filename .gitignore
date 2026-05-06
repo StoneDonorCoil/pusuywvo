@@ -21,6 +21,10 @@ env/
 *.swp
 *.swo
 
+# Uploads (user files)
+uploads/*
+!uploads/.gitkeep
+
 # OS
 .DS_Store
 Thumbs.db

@@ -2,12 +2,13 @@
 Главный модуль приложения — FastAPI сервер для AI-бота.
 """
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.config import settings
+from app.files import delete_file, get_file_path, list_uploads, save_upload
 from app.knowledge import build_system_message
 from app.ollama_client import chat_stream, check_health, list_models
 
@@ -72,6 +73,42 @@ async def api_config():
         "title": settings.app_title,
         "model": settings.model_name,
     }
+
+
+# === Файловые эндпоинты ===
+
+
+@app.post("/api/upload")
+async def api_upload(file: UploadFile):
+    """Загрузка файла (любой формат: фото, музыка, zip, документы и т.д.)."""
+    try:
+        result = await save_upload(file)
+        return {"status": "ok", "file": result}
+    except ValueError as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.get("/api/files")
+async def api_files():
+    """Список загруженных файлов."""
+    return {"files": list_uploads()}
+
+
+@app.get("/api/files/{file_id}")
+async def api_download(file_id: str):
+    """Скачивание файла."""
+    filepath = get_file_path(file_id)
+    if filepath is None:
+        return {"status": "error", "message": "Файл не найден"}
+    return FileResponse(filepath, filename=filepath.name)
+
+
+@app.delete("/api/files/{file_id}")
+async def api_delete_file(file_id: str):
+    """Удаление файла."""
+    if delete_file(file_id):
+        return {"status": "ok"}
+    return {"status": "error", "message": "Файл не найден"}
 
 
 if __name__ == "__main__":
