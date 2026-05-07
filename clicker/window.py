@@ -89,7 +89,7 @@ class BackgroundFrame(QFrame):
             if pixmap and not pixmap.isNull():
                 scaled = pixmap.scaled(
                     self.size(),
-                    Qt.KeepAspectRatioByExpanding,
+                    Qt.KeepAspectRatio,
                     Qt.SmoothTransformation,
                 )
                 x = (self.width() - scaled.width()) // 2
@@ -98,8 +98,8 @@ class BackgroundFrame(QFrame):
                 clip = QPainterPath()
                 clip.addRoundedRect(QRectF(self.rect()), 12, 12)
                 p.setClipPath(clip)
-                p.drawPixmap(x, y, scaled)
                 p.fillRect(self.rect(), QColor(0, 0, 0, self._overlay_alpha))
+                p.drawPixmap(x, y, scaled)
 
             p.end()
 
