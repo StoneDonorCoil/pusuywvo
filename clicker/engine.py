@@ -1,4 +1,4 @@
-"""Click engine, bind listener and CPS tracker."""
+"""Click engine, macro engine, bind listener and CPS tracker."""
 
 import platform
 import random
@@ -18,8 +18,11 @@ if IS_WIN:
     import ctypes.wintypes
 
     INPUT_MOUSE = 0
+    INPUT_KEYBOARD = 1
     MOUSEEVENTF_LEFTDOWN = 0x0002
     MOUSEEVENTF_LEFTUP = 0x0004
+    KEYEVENTF_KEYUP = 0x0002
+    KEYEVENTF_SCANCODE = 0x0008
 
     class MOUSEINPUT(ctypes.Structure):
         _fields_ = [
@@ -31,8 +34,17 @@ if IS_WIN:
             ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
         ]
 
+    class KEYBDINPUT(ctypes.Structure):
+        _fields_ = [
+            ("wVk", ctypes.c_ushort),
+            ("wScan", ctypes.c_ushort),
+            ("dwFlags", ctypes.c_ulong),
+            ("time", ctypes.c_ulong),
+            ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong)),
+        ]
+
     class _INPUT_UNION(ctypes.Union):
-        _fields_ = [("mi", MOUSEINPUT)]
+        _fields_ = [("mi", MOUSEINPUT), ("ki", KEYBDINPUT)]
 
     class INPUT(ctypes.Structure):
         _fields_ = [
@@ -57,6 +69,7 @@ if IS_WIN:
 
 else:
     _mouse_ctrl = mouse.Controller()
+    _kb_ctrl = keyboard.Controller()
 
     def _win_click() -> None:
         _mouse_ctrl.click(mouse.Button.left, 1)
@@ -71,6 +84,16 @@ else:
             return "roblox" in out.decode().lower()
         except Exception:
             return False
+
+
+def _press_key(key) -> None:
+    """Press and release a key using pynput controller."""
+    try:
+        ctrl = keyboard.Controller()
+        ctrl.press(key)
+        ctrl.release(key)
+    except Exception:
+        pass
 
 
 def _key_name(key) -> str:
@@ -108,13 +131,14 @@ class BindListener(QObject):
     bind_pressed = Signal()
     bind_released = Signal()
     hide_pressed = Signal()
+    macro_key_captured = Signal(object, str)  # (raw_key, display_name)
 
     def __init__(self) -> None:
         super().__init__()
-        self._listening_for: str | None = None  # "click" or "hide"
+        self._listening_for: str | None = None  # "click" | "hide" | "macro_key"
         self._click_bind = None
         self._hide_bind = None
-        self._click_bind_type: str = ""  # "key" or "mouse"
+        self._click_bind_type: str = ""
         self._hide_bind_type: str = ""
         self._pressed_keys: set = set()
         self._pressed_buttons: set = set()
@@ -146,6 +170,11 @@ class BindListener(QObject):
                 target = self._listening_for
                 self._listening_for = None
                 name = _key_name(key)
+
+                if target == "macro_key":
+                    self.macro_key_captured.emit(key, name)
+                    return
+
                 if target == "click":
                     self._click_bind = key
                     self._click_bind_type = "key"
@@ -180,6 +209,11 @@ class BindListener(QObject):
                 target = self._listening_for
                 self._listening_for = None
                 name = _btn_name(button)
+
+                if target == "macro_key":
+                    self.macro_key_captured.emit(button, name)
+                    return
+
                 if target == "click":
                     self._click_bind = button
                     self._click_bind_type = "mouse"
@@ -225,6 +259,8 @@ class ClickEngine(QObject):
     cps_update = Signal(float)
     status_changed = Signal(bool)
 
+    RAMP_DURATION = 1.5  # seconds for smooth ramp-up
+
     def __init__(self) -> None:
         super().__init__()
         self._running = False
@@ -237,6 +273,7 @@ class ClickEngine(QObject):
         self._only_roblox: bool = False
         self._click_times: deque = deque(maxlen=2000)
         self._lock = threading.Lock()
+        self._start_time: float = 0.0
 
         self._thread: threading.Thread | None = None
 
@@ -269,6 +306,7 @@ class ClickEngine(QObject):
     def start(self) -> None:
         if self._active.is_set():
             return
+        self._start_time = time.perf_counter()
         self._active.set()
         self._stop.clear()
         self._click_times.clear()
@@ -304,9 +342,15 @@ class ClickEngine(QObject):
                 mn = self._min_cps
                 mx = self._max_cps
                 only_roblox = self._only_roblox
+                start_time = self._start_time
 
             if mode == "mixed":
                 cps = random.uniform(mn, mx)
+            elif mode == "smooth":
+                elapsed = time.perf_counter() - start_time
+                progress = min(1.0, elapsed / self.RAMP_DURATION)
+                eased = progress * progress  # quadratic ease-in
+                cps = max(1.0, target * eased)
             else:
                 cps = target
 
@@ -335,6 +379,14 @@ class ClickEngine(QObject):
                         mx = self._max_cps
                     cps = random.uniform(mn, mx)
                     interval = 1.0 / cps if cps > 0 else 1.0
+                elif mode == "smooth":
+                    elapsed = now - start_time
+                    progress = min(1.0, elapsed / self.RAMP_DURATION)
+                    eased = progress * progress
+                    with self._lock:
+                        target = self._target_cps
+                    cps = max(1.0, target * eased)
+                    interval = 1.0 / cps if cps > 0 else 1.0
 
     def _emit_cps(self) -> None:
         now = time.perf_counter()
@@ -342,3 +394,74 @@ class ClickEngine(QObject):
         while self._click_times and self._click_times[0] < cutoff:
             self._click_times.popleft()
         self.cps_update.emit(float(len(self._click_times)))
+
+
+class MacroEngine(QObject):
+    """Engine that presses a list of keys with delays."""
+
+    status_changed = Signal(bool)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._active = threading.Event()
+        self._stop = threading.Event()
+        self._macros: list[tuple] = []  # [(raw_key, delay_ms), ...]
+        self._lock = threading.Lock()
+        self._thread: threading.Thread | None = None
+
+    @property
+    def is_active(self) -> bool:
+        return self._active.is_set()
+
+    def set_macros(self, macros: list[tuple]) -> None:
+        with self._lock:
+            self._macros = list(macros)
+
+    def start(self) -> None:
+        if self._active.is_set():
+            return
+        self._active.set()
+        self._stop.clear()
+        if self._thread is None or not self._thread.is_alive():
+            self._thread = threading.Thread(target=self._loop, daemon=True)
+            self._thread.start()
+        self.status_changed.emit(True)
+
+    def stop(self) -> None:
+        if not self._active.is_set():
+            return
+        self._active.clear()
+        self.status_changed.emit(False)
+
+    def shutdown(self) -> None:
+        self._stop.set()
+        self._active.clear()
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=1.0)
+
+    def _loop(self) -> None:
+        while not self._stop.is_set():
+            self._active.wait(timeout=0.05)
+            if self._stop.is_set():
+                break
+            if not self._active.is_set():
+                continue
+
+            with self._lock:
+                macros = list(self._macros)
+
+            if not macros:
+                time.sleep(0.05)
+                continue
+
+            for raw_key, delay_ms in macros:
+                if not self._active.is_set() or self._stop.is_set():
+                    break
+                _press_key(raw_key)
+                delay_s = delay_ms / 1000.0
+                if delay_s > 0:
+                    end_time = time.perf_counter() + delay_s
+                    while time.perf_counter() < end_time:
+                        if not self._active.is_set() or self._stop.is_set():
+                            break
+                        time.sleep(min(0.01, end_time - time.perf_counter()))

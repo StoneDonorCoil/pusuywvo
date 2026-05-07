@@ -13,15 +13,23 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QSizePolicy,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from .engine import BindListener, ClickEngine
+from .engine import BindListener, ClickEngine, MacroEngine
 from .themes import DARK, LIGHT, build_stylesheet
-from .widgets import AnimatedToggle, CpsPresetBar, GlowButton, ModeTabBar
+from .widgets import (
+    AnimatedToggle,
+    CpsPresetBar,
+    GlowButton,
+    MacroEntryWidget,
+    ModeTabBar,
+)
 
 
 class ClickerWindow(QWidget):
@@ -43,9 +51,15 @@ class ClickerWindow(QWidget):
         self._drag_pos = None
 
         self._engine = ClickEngine()
+        self._macro_engine = MacroEngine()
         self._bind_listener = BindListener()
-        self._hold_mode = True  # True = hold, False = toggle
+        self._hold_mode = True
         self._toggle_active = False
+        self._macro_hold_mode = True
+        self._macro_toggle_active = False
+
+        # macro data: list of (raw_key, display_name, delay_ms)
+        self._macro_data: list[tuple] = []
 
         self._build_ui()
         self._apply_theme()
@@ -68,53 +82,29 @@ class ClickerWindow(QWidget):
 
         main = QVBoxLayout(self._container)
         main.setContentsMargins(18, 14, 18, 18)
-        main.setSpacing(12)
+        main.setSpacing(10)
 
         # title bar
         main.addLayout(self._build_title_bar())
-
-        # separator
         main.addWidget(self._sep())
 
-        # mode tabs
-        self._mode_tabs = ModeTabBar(["Smooth", "Insta", "Mixed"])
-        main.addWidget(self._mode_tabs)
+        # page tabs (Clicker / Macros)
+        self._page_tabs = ModeTabBar(["Clicker", "Macros"])
+        main.addWidget(self._page_tabs)
 
-        # CPS input
-        main.addLayout(self._build_cps_input())
+        # stacked widget
+        self._stack = QStackedWidget()
+        main.addWidget(self._stack)
 
-        # preset bar
-        self._presets = CpsPresetBar([100, 200, 300, 400, 500])
-        main.addWidget(self._presets)
+        # page 0: clicker
+        self._clicker_page = QWidget()
+        self._build_clicker_page()
+        self._stack.addWidget(self._clicker_page)
 
-        # mixed range (hidden by default)
-        self._mixed_card = self._build_mixed_card()
-        main.addWidget(self._mixed_card)
-        self._mixed_card.setVisible(False)
-
-        # separator
-        main.addWidget(self._sep())
-
-        # live CPS
-        main.addLayout(self._build_cps_display())
-
-        # separator
-        main.addWidget(self._sep())
-
-        # bind row
-        main.addLayout(self._build_bind_row())
-
-        # mode row (hold / toggle)
-        main.addLayout(self._build_mode_row())
-
-        # hide bind row
-        main.addLayout(self._build_hide_row())
-
-        # separator
-        main.addWidget(self._sep())
-
-        # only roblox
-        main.addLayout(self._build_roblox_row())
+        # page 1: macros
+        self._macros_page = QWidget()
+        self._build_macros_page()
+        self._stack.addWidget(self._macros_page)
 
         main.addStretch()
 
@@ -143,6 +133,59 @@ class ClickerWindow(QWidget):
         row.addWidget(close_btn)
 
         return row
+
+    # ── Clicker page ─────────────────────────────────────────────
+
+    def _build_clicker_page(self) -> None:
+        lay = QVBoxLayout(self._clicker_page)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(10)
+
+        # mode tabs
+        self._mode_tabs = ModeTabBar(["Smooth", "Insta", "Mixed"])
+        lay.addWidget(self._mode_tabs)
+
+        # CPS input + presets (hidden in mixed mode)
+        self._cps_widget = QWidget()
+        cps_lay = QVBoxLayout(self._cps_widget)
+        cps_lay.setContentsMargins(0, 0, 0, 0)
+        cps_lay.setSpacing(8)
+        cps_lay.addLayout(self._build_cps_input())
+        self._presets = CpsPresetBar([100, 200, 300, 400, 500])
+        cps_lay.addWidget(self._presets)
+        lay.addWidget(self._cps_widget)
+
+        # mixed range card (hidden by default)
+        self._mixed_card = self._build_mixed_card()
+        lay.addWidget(self._mixed_card)
+        self._mixed_card.setVisible(False)
+
+        lay.addWidget(self._sep())
+
+        # target CPS display
+        self._target_label = QLabel("Target: 10 CPS")
+        self._target_label.setObjectName("targetCps")
+        self._target_label.setAlignment(Qt.AlignCenter)
+        lay.addWidget(self._target_label)
+
+        # live CPS
+        lay.addLayout(self._build_cps_display())
+
+        lay.addWidget(self._sep())
+
+        # bind row
+        lay.addLayout(self._build_bind_row())
+
+        # mode row (hold / toggle)
+        lay.addLayout(self._build_mode_row())
+
+        # hide bind row
+        lay.addLayout(self._build_hide_row())
+
+        lay.addWidget(self._sep())
+
+        # only roblox
+        lay.addLayout(self._build_roblox_row())
 
     def _build_cps_input(self) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -303,6 +346,107 @@ class ClickerWindow(QWidget):
 
         return row
 
+    # ── Macros page ──────────────────────────────────────────────
+
+    def _build_macros_page(self) -> None:
+        lay = QVBoxLayout(self._macros_page)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(8)
+
+        # macro count label
+        self._macro_count_label = QLabel("Macros: 0")
+        self._macro_count_label.setObjectName("macroCount")
+        self._macro_count_label.setAlignment(Qt.AlignCenter)
+        lay.addWidget(self._macro_count_label)
+
+        # scroll area for macro entries
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFixedHeight(180)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self._macro_list_widget = QWidget()
+        self._macro_list_layout = QVBoxLayout(self._macro_list_widget)
+        self._macro_list_layout.setContentsMargins(0, 0, 0, 0)
+        self._macro_list_layout.setSpacing(2)
+        self._macro_list_layout.addStretch()
+
+        scroll.setWidget(self._macro_list_widget)
+        lay.addWidget(scroll)
+
+        # action buttons row
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(6)
+
+        self._macro_add_btn = GlowButton("+ Add Key", self)
+        self._macro_add_btn.setObjectName("macroAddBtn")
+        self._macro_add_btn.setCursor(Qt.PointingHandCursor)
+        self._macro_add_btn.setFixedHeight(28)
+        self._macro_add_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        btn_row.addWidget(self._macro_add_btn)
+
+        self._macro_copy_btn = GlowButton("Copy Last", self)
+        self._macro_copy_btn.setObjectName("macroAddBtn")
+        self._macro_copy_btn.setCursor(Qt.PointingHandCursor)
+        self._macro_copy_btn.setFixedHeight(28)
+        self._macro_copy_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        btn_row.addWidget(self._macro_copy_btn)
+
+        lay.addLayout(btn_row)
+
+        lay.addWidget(self._sep())
+
+        # macro bind row
+        macro_bind_row = QHBoxLayout()
+        macro_bind_row.setSpacing(8)
+
+        lbl = QLabel("Bind")
+        lbl.setObjectName("sec")
+        lbl.setFixedWidth(36)
+        macro_bind_row.addWidget(lbl)
+
+        self._macro_bind_btn = GlowButton("Set Bind", self)
+        self._macro_bind_btn.setObjectName("primary")
+        self._macro_bind_btn.setCursor(Qt.PointingHandCursor)
+        self._macro_bind_btn.setFixedHeight(30)
+        self._macro_bind_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        macro_bind_row.addWidget(self._macro_bind_btn)
+
+        self._macro_bind_display = QLabel("—")
+        self._macro_bind_display.setObjectName("sec")
+        self._macro_bind_display.setAlignment(Qt.AlignCenter)
+        self._macro_bind_display.setFixedWidth(60)
+        macro_bind_row.addWidget(self._macro_bind_display)
+
+        lay.addLayout(macro_bind_row)
+
+        # macro mode row (hold / toggle)
+        macro_mode_row = QHBoxLayout()
+        macro_mode_row.setSpacing(8)
+
+        lbl2 = QLabel("Mode")
+        lbl2.setObjectName("sec")
+        lbl2.setFixedWidth(36)
+        macro_mode_row.addWidget(lbl2)
+
+        self._macro_hold_btn = GlowButton("Hold", self)
+        self._macro_hold_btn.setObjectName("modeTabActive")
+        self._macro_hold_btn.setCursor(Qt.PointingHandCursor)
+        self._macro_hold_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._macro_hold_btn.setFixedHeight(30)
+        macro_mode_row.addWidget(self._macro_hold_btn)
+
+        self._macro_toggle_btn = GlowButton("Toggle", self)
+        self._macro_toggle_btn.setObjectName("modeTab")
+        self._macro_toggle_btn.setCursor(Qt.PointingHandCursor)
+        self._macro_toggle_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._macro_toggle_btn.setFixedHeight(30)
+        macro_mode_row.addWidget(self._macro_toggle_btn)
+
+        lay.addLayout(macro_mode_row)
+
+    # ── Helpers ───────────────────────────────────────────────────
+
     @staticmethod
     def _sep() -> QFrame:
         s = QFrame()
@@ -316,8 +460,11 @@ class ClickerWindow(QWidget):
     def _connect_signals(self) -> None:
         self._theme_btn.clicked.connect(self._toggle_theme)
 
-        self._mode_tabs.mode_changed.connect(self._on_mode_changed)
+        # page tabs
+        self._page_tabs.mode_changed.connect(self._on_page_changed)
 
+        # clicker signals
+        self._mode_tabs.mode_changed.connect(self._on_mode_changed)
         self._cps_spin.valueChanged.connect(self._on_cps_changed)
         self._min_spin.valueChanged.connect(self._on_range_changed)
         self._max_spin.valueChanged.connect(self._on_range_changed)
@@ -339,7 +486,20 @@ class ClickerWindow(QWidget):
         self._engine.cps_update.connect(self._on_cps_update)
         self._engine.status_changed.connect(self._on_status_changed)
 
+        # macro signals
+        self._macro_add_btn.clicked.connect(self._macro_start_add)
+        self._macro_copy_btn.clicked.connect(self._macro_copy_last)
+        self._bind_listener.macro_key_captured.connect(self._macro_on_key_captured)
+
+        self._macro_bind_btn.clicked.connect(lambda: self._start_bind("click"))
+        self._macro_hold_btn.clicked.connect(lambda: self._set_macro_hold_mode(True))
+        self._macro_toggle_btn.clicked.connect(lambda: self._set_macro_hold_mode(False))
+
     # ── Callbacks ────────────────────────────────────────────────
+
+    def _on_page_changed(self, page: str) -> None:
+        idx = 0 if page == "Clicker" else 1
+        self._stack.setCurrentIndex(idx)
 
     def _toggle_theme(self) -> None:
         self._is_dark = not self._is_dark
@@ -353,9 +513,6 @@ class ClickerWindow(QWidget):
         self._roblox_toggle.set_colors(t["toggle_on"], t["toggle_off"], t["primary_glow"])
         self._cps_glow.setColor(QColor(t["primary"]))
 
-        for btn in (self._bind_btn, self._hide_btn):
-            btn.set_glow_color(QColor(t["primary"]))
-
         for w in self.findChildren(GlowButton):
             w.set_glow_color(QColor(t["primary"]))
 
@@ -363,28 +520,45 @@ class ClickerWindow(QWidget):
         mode_lower = mode.lower()
         self._engine.set_mode(mode_lower)
 
-        show_mixed = mode_lower == "mixed"
-        if show_mixed != self._mixed_card.isVisible():
-            self._mixed_card.setVisible(show_mixed)
-            QTimer.singleShot(0, self.adjustSize)
+        is_mixed = mode_lower == "mixed"
+        self._mixed_card.setVisible(is_mixed)
+        self._cps_widget.setVisible(not is_mixed)
+        self._update_target_label()
+        QTimer.singleShot(0, self.adjustSize)
 
     def _on_cps_changed(self, v: int) -> None:
         self._engine.set_cps(float(v))
         self._presets.clear_active()
+        self._update_target_label()
 
     def _on_range_changed(self) -> None:
         self._engine.set_cps_range(
             float(self._min_spin.value()),
             float(self._max_spin.value()),
         )
+        self._update_target_label()
 
     def _on_preset(self, v: int) -> None:
         self._cps_spin.setValue(v)
         self._engine.set_cps(float(v))
+        self._update_target_label()
+
+    def _update_target_label(self) -> None:
+        mode = self._mode_tabs.current().lower()
+        if mode == "mixed":
+            self._target_label.setText(
+                f"Target: {self._min_spin.value()} – {self._max_spin.value()} CPS"
+            )
+        else:
+            self._target_label.setText(f"Target: {self._cps_spin.value()} CPS")
 
     def _start_bind(self, target: str) -> None:
         if target == "click":
-            self._bind_btn.setText("...")
+            # check which page is active
+            if self._stack.currentIndex() == 1:
+                self._macro_bind_btn.setText("...")
+            else:
+                self._bind_btn.setText("...")
         else:
             self._hide_btn.setText("...")
         self._bind_listener.start_listening(target)
@@ -392,8 +566,12 @@ class ClickerWindow(QWidget):
     def _on_bind_set(self, name: str, meta: object) -> None:
         _, _, target = meta
         if target == "click":
-            self._bind_btn.setText("Set Bind")
-            self._bind_display.setText(name)
+            if self._stack.currentIndex() == 1:
+                self._macro_bind_btn.setText("Set Bind")
+                self._macro_bind_display.setText(name)
+            else:
+                self._bind_btn.setText("Set Bind")
+                self._bind_display.setText(name)
         else:
             self._hide_btn.setText("Set Bind")
             self._hide_display.setText(name)
@@ -415,6 +593,9 @@ class ClickerWindow(QWidget):
             self._engine.stop()
 
     def _on_bind_pressed(self) -> None:
+        if self._stack.currentIndex() == 1:
+            self._on_macro_bind_pressed()
+            return
         if self._hold_mode:
             self._engine.start()
         else:
@@ -425,6 +606,9 @@ class ClickerWindow(QWidget):
                 self._engine.stop()
 
     def _on_bind_released(self) -> None:
+        if self._stack.currentIndex() == 1:
+            self._on_macro_bind_released()
+            return
         if self._hold_mode:
             self._engine.stop()
 
@@ -440,6 +624,101 @@ class ClickerWindow(QWidget):
     def _on_status_changed(self, active: bool) -> None:
         color = self._theme["success"] if active else self._theme["primary"]
         self._cps_glow.setColor(QColor(color))
+
+    # ── Macro callbacks ──────────────────────────────────────────
+
+    def _set_macro_hold_mode(self, hold: bool) -> None:
+        self._macro_hold_mode = hold
+        if hold:
+            self._macro_hold_btn.setObjectName("modeTabActive")
+            self._macro_toggle_btn.setObjectName("modeTab")
+        else:
+            self._macro_hold_btn.setObjectName("modeTab")
+            self._macro_toggle_btn.setObjectName("modeTabActive")
+        for btn in (self._macro_hold_btn, self._macro_toggle_btn):
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
+
+        if not hold:
+            self._macro_toggle_active = False
+            self._macro_engine.stop()
+
+    def _on_macro_bind_pressed(self) -> None:
+        self._sync_macro_engine()
+        if self._macro_hold_mode:
+            self._macro_engine.start()
+        else:
+            self._macro_toggle_active = not self._macro_toggle_active
+            if self._macro_toggle_active:
+                self._macro_engine.start()
+            else:
+                self._macro_engine.stop()
+
+    def _on_macro_bind_released(self) -> None:
+        if self._macro_hold_mode:
+            self._macro_engine.stop()
+
+    def _sync_macro_engine(self) -> None:
+        macros = [(raw_key, delay) for raw_key, _, delay in self._macro_data]
+        self._macro_engine.set_macros(macros)
+
+    def _macro_start_add(self) -> None:
+        self._macro_add_btn.setText("Press key...")
+        self._bind_listener.start_listening("macro_key")
+
+    def _macro_on_key_captured(self, raw_key: object, name: str) -> None:
+        self._macro_add_btn.setText("+ Add Key")
+        self._macro_add_entry(raw_key, name, 50)
+
+    def _macro_add_entry(self, raw_key: object, name: str, delay_ms: int) -> None:
+        idx = len(self._macro_data)
+        self._macro_data.append((raw_key, name, delay_ms))
+
+        entry = MacroEntryWidget(idx, name, delay_ms, self._macro_list_widget)
+        entry.delete_clicked.connect(self._macro_delete_entry)
+        entry.delay_changed.connect(self._macro_delay_changed)
+
+        # insert before the stretch
+        self._macro_list_layout.insertWidget(
+            self._macro_list_layout.count() - 1, entry
+        )
+        self._update_macro_count()
+
+    def _macro_copy_last(self) -> None:
+        if not self._macro_data:
+            return
+        raw_key, name, delay = self._macro_data[-1]
+        self._macro_add_entry(raw_key, name, delay)
+
+    def _macro_delete_entry(self, idx: int) -> None:
+        if idx < 0 or idx >= len(self._macro_data):
+            return
+        self._macro_data.pop(idx)
+
+        item = self._macro_list_layout.itemAt(idx)
+        if item and item.widget():
+            item.widget().deleteLater()
+
+        # renumber remaining
+        for i in range(self._macro_list_layout.count() - 1):
+            item = self._macro_list_layout.itemAt(i)
+            if item and item.widget() and isinstance(item.widget(), MacroEntryWidget):
+                item.widget().set_index(i)
+                item.widget().delete_clicked.disconnect()
+                item.widget().delete_clicked.connect(self._macro_delete_entry)
+                item.widget().delay_changed.disconnect()
+                item.widget().delay_changed.connect(self._macro_delay_changed)
+
+        self._update_macro_count()
+
+    def _macro_delay_changed(self, idx: int, delay_ms: int) -> None:
+        if idx < len(self._macro_data):
+            raw_key, name, _ = self._macro_data[idx]
+            self._macro_data[idx] = (raw_key, name, delay_ms)
+
+    def _update_macro_count(self) -> None:
+        n = len(self._macro_data)
+        self._macro_count_label.setText(f"Macros: {n}")
 
     # ── Show / hide animations ───────────────────────────────────
 
@@ -489,10 +768,12 @@ class ClickerWindow(QWidget):
 
     def _quit(self) -> None:
         self._engine.shutdown()
+        self._macro_engine.shutdown()
         self._bind_listener.shutdown()
         QApplication.quit()
 
     def closeEvent(self, event) -> None:
         self._engine.shutdown()
+        self._macro_engine.shutdown()
         self._bind_listener.shutdown()
         super().closeEvent(event)

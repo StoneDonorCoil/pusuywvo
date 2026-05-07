@@ -13,8 +13,11 @@ from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
+    QLabel,
     QPushButton,
     QSizePolicy,
+    QSpinBox,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -82,7 +85,6 @@ class AnimatedToggle(QWidget):
         self._glow_anim = QPropertyAnimation(self._glow, b"blurRadius")
         self._glow_anim.setDuration(200)
 
-    # --- property for animation ---
     def _get_thumb_x(self) -> float:
         return self._thumb_x
 
@@ -124,7 +126,6 @@ class AnimatedToggle(QWidget):
     def paintEvent(self, event) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
-        t = self._thumb_x / 24.0 if self._checked else 1.0 - (self._thumb_x - 4.0) / 20.0
         t = max(0.0, min(1.0, (self._thumb_x - 4.0) / 20.0))
         r1, g1, b1 = self._track_off.red(), self._track_off.green(), self._track_off.blue()
         r2, g2, b2 = self._track_on.red(), self._track_on.green(), self._track_on.blue()
@@ -202,13 +203,14 @@ class CpsPresetBar(QWidget):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+        layout.setSpacing(3)
 
         for v in presets:
             btn = GlowButton(str(v), self)
             btn.setObjectName("preset")
             btn.setCursor(Qt.PointingHandCursor)
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            btn.setFixedHeight(28)
             btn.clicked.connect(lambda checked=False, val=v: self._select(val))
             self._buttons.append(btn)
             layout.addWidget(btn)
@@ -230,3 +232,60 @@ class CpsPresetBar(QWidget):
                 btn.setObjectName("preset")
             btn.style().unpolish(btn)
             btn.style().polish(btn)
+
+
+class MacroEntryWidget(QWidget):
+    """Single macro entry row: [#num] [key] [delay ms] [delete]."""
+
+    delete_clicked = Signal(int)
+    delay_changed = Signal(int, int)  # (index, delay_ms)
+
+    def __init__(self, index: int, key_name: str, delay_ms: int = 50,
+                 parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._index = index
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(6)
+
+        self._num_label = QLabel(f"#{index + 1}")
+        self._num_label.setObjectName("dim")
+        self._num_label.setFixedWidth(28)
+        layout.addWidget(self._num_label)
+
+        self._key_label = QLabel(key_name)
+        self._key_label.setObjectName("macroKey")
+        self._key_label.setFixedWidth(60)
+        self._key_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self._key_label)
+
+        self._delay_spin = QSpinBox()
+        self._delay_spin.setRange(1, 99999)
+        self._delay_spin.setValue(delay_ms)
+        self._delay_spin.setSuffix(" ms")
+        self._delay_spin.setFixedHeight(26)
+        self._delay_spin.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._delay_spin.valueChanged.connect(self._on_delay)
+        layout.addWidget(self._delay_spin)
+
+        del_btn = GlowButton("✕", self)
+        del_btn.setObjectName("macroDelBtn")
+        del_btn.setCursor(Qt.PointingHandCursor)
+        del_btn.setFixedSize(26, 26)
+        del_btn.clicked.connect(lambda: self.delete_clicked.emit(self._index))
+        self._del_btn = del_btn
+        layout.addWidget(del_btn)
+
+    def _on_delay(self, v: int) -> None:
+        self.delay_changed.emit(self._index, v)
+
+    def set_index(self, i: int) -> None:
+        self._index = i
+        self._num_label.setText(f"#{i + 1}")
+
+    def get_delay(self) -> int:
+        return self._delay_spin.value()
+
+    def get_key_name(self) -> str:
+        return self._key_label.text()

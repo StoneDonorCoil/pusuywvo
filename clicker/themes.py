@@ -22,6 +22,8 @@ DARK = {
     "danger": "#ff5c5c",
     "success": "#4dd4c4",
     "card_shadow": "rgba(0,0,0,0.3)",
+    "scroll_bg": "#101025",
+    "scroll_handle": "#303050",
 }
 
 LIGHT = {
@@ -46,6 +48,8 @@ LIGHT = {
     "danger": "#ff4050",
     "success": "#28c870",
     "card_shadow": "rgba(0,0,0,0.08)",
+    "scroll_bg": "#e8e8f0",
+    "scroll_handle": "#c0c0d5",
 }
 
 
@@ -73,6 +77,23 @@ def build_stylesheet(t: dict) -> str:
         font-size: 36px;
         font-weight: 700;
         font-family: 'Segoe UI', 'JetBrains Mono', monospace;
+    }}
+    QLabel#targetCps {{
+        color: {t['text_sec']};
+        font-size: 11px;
+    }}
+    QLabel#macroKey {{
+        color: {t['primary']};
+        font-size: 12px;
+        font-weight: 600;
+        background-color: {t['surface']};
+        border: 1px solid {t['border']};
+        border-radius: 4px;
+        padding: 2px 6px;
+    }}
+    QLabel#macroCount {{
+        color: {t['text_dim']};
+        font-size: 10px;
     }}
     QPushButton {{
         background-color: {t['surface']};
@@ -115,18 +136,18 @@ def build_stylesheet(t: dict) -> str:
         font-weight: 600;
     }}
     QPushButton#preset {{
-        padding: 6px 10px;
+        padding: 4px 2px;
         font-size: 11px;
-        min-width: 42px;
+        min-width: 0px;
         border-radius: 6px;
     }}
     QPushButton#presetActive {{
         background-color: {t['primary']};
         color: #ffffff;
         border: 1px solid {t['primary']};
-        padding: 6px 10px;
+        padding: 4px 2px;
         font-size: 11px;
-        min-width: 42px;
+        min-width: 0px;
         border-radius: 6px;
     }}
     QPushButton#iconBtn {{
@@ -173,6 +194,31 @@ def build_stylesheet(t: dict) -> str:
         background-color: {t['danger']};
         color: #ffffff;
     }}
+    QPushButton#macroDelBtn {{
+        background-color: transparent;
+        border: 1px solid {t['border']};
+        border-radius: 4px;
+        padding: 0px;
+        font-size: 10px;
+        color: {t['text_dim']};
+    }}
+    QPushButton#macroDelBtn:hover {{
+        background-color: {t['danger']};
+        color: #ffffff;
+        border-color: {t['danger']};
+    }}
+    QPushButton#macroAddBtn {{
+        background-color: {t['surface']};
+        border: 1px dashed {t['border']};
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: {t['text_sec']};
+    }}
+    QPushButton#macroAddBtn:hover {{
+        border-color: {t['primary']};
+        color: {t['primary']};
+    }}
     QSpinBox, QLineEdit {{
         background-color: {t['input_bg']};
         color: {t['text']};
@@ -197,5 +243,26 @@ def build_stylesheet(t: dict) -> str:
         background-color: {t['surface']};
         border: 1px solid {t['border']};
         border-radius: 10px;
+    }}
+    QScrollArea {{
+        background: transparent;
+        border: none;
+    }}
+    QScrollArea > QWidget > QWidget {{
+        background: transparent;
+    }}
+    QScrollBar:vertical {{
+        background: {t['scroll_bg']};
+        width: 6px;
+        border-radius: 3px;
+        margin: 0;
+    }}
+    QScrollBar::handle:vertical {{
+        background: {t['scroll_handle']};
+        min-height: 20px;
+        border-radius: 3px;
+    }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+        height: 0px;
     }}
     """
