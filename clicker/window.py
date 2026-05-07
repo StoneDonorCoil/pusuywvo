@@ -1,19 +1,17 @@
 """Main application window."""
 
-import os
-
 from PySide6.QtCore import (
     QEasingCurve,
     QPropertyAnimation,
+    QRectF,
     Qt,
-    QTimer,
-    QUrl,
 )
 from PySide6.QtGui import (
     QColor,
     QIcon,
     QMovie,
     QPainter,
+    QPainterPath,
     QPixmap,
 )
 from PySide6.QtWidgets import (
@@ -23,6 +21,7 @@ from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMenu,
     QScrollArea,
     QSizePolicy,
@@ -34,7 +33,7 @@ from PySide6.QtWidgets import (
 
 from .engine import BindListener, ClickEngine, MacroEngine
 from .music import MusicPlayer
-from .themes import ALL_THEMES, DARK, build_stylesheet
+from .themes import ALL_THEMES, build_stylesheet
 from .widgets import (
     AnimatedToggle,
     CpsPresetBar,
@@ -96,7 +95,9 @@ class BackgroundFrame(QFrame):
                 x = (self.width() - scaled.width()) // 2
                 y = (self.height() - scaled.height()) // 2
 
-                p.setClipRoundedRect(self.rect(), 12, 12)
+                clip = QPainterPath()
+                clip.addRoundedRect(QRectF(self.rect()), 12, 12)
+                p.setClipPath(clip)
                 p.drawPixmap(x, y, scaled)
                 p.fillRect(self.rect(), QColor(0, 0, 0, self._overlay_alpha))
 
@@ -113,6 +114,7 @@ class ClickerWindow(QWidget):
         self._theme_idx = 0
         self._theme = ALL_THEMES[0]
         self._hidden = False
+        self._current_mode = "smooth"
 
         self.setWindowFlags(
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
@@ -186,21 +188,12 @@ class ClickerWindow(QWidget):
         row = QHBoxLayout()
         row.setSpacing(4)
 
-        # theme selector button
         self._theme_btn = GlowButton("Dark", self)
         self._theme_btn.setObjectName("themeBtn")
         self._theme_btn.setToolTip("Choose theme")
         self._theme_btn.setCursor(Qt.PointingHandCursor)
         row.addWidget(self._theme_btn)
 
-        # discord author button
-        self._discord_btn = GlowButton("  123.456.789.100", self)
-        self._discord_btn.setObjectName("discordBtn")
-        self._discord_btn.setCursor(Qt.PointingHandCursor)
-        self._discord_btn.setToolTip("Copy Discord")
-        row.addWidget(self._discord_btn)
-
-        # background button
         self._bg_btn = GlowButton("BG", self)
         self._bg_btn.setObjectName("themeBtn")
         self._bg_btn.setCursor(Qt.PointingHandCursor)
@@ -230,8 +223,23 @@ class ClickerWindow(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(10)
 
-        self._mode_tabs = ModeTabBar(["Smooth", "Insta", "Mixed"])
-        lay.addWidget(self._mode_tabs)
+        # Mode selector row (dropdown, like theme selector)
+        mode_row = QHBoxLayout()
+        mode_row.setSpacing(8)
+
+        lbl = QLabel("Mode")
+        lbl.setObjectName("sec")
+        lbl.setFixedWidth(36)
+        mode_row.addWidget(lbl)
+
+        self._mode_btn = GlowButton("Smooth", self)
+        self._mode_btn.setObjectName("primary")
+        self._mode_btn.setCursor(Qt.PointingHandCursor)
+        self._mode_btn.setFixedHeight(30)
+        self._mode_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        mode_row.addWidget(self._mode_btn)
+
+        lay.addLayout(mode_row)
 
         self._cps_widget = QWidget()
         cps_lay = QVBoxLayout(self._cps_widget)
@@ -256,7 +264,7 @@ class ClickerWindow(QWidget):
         lay.addLayout(self._build_cps_display())
         lay.addWidget(self._sep())
         lay.addLayout(self._build_bind_row())
-        lay.addLayout(self._build_mode_row())
+        lay.addLayout(self._build_hold_toggle_row())
         lay.addLayout(self._build_hide_row())
         lay.addWidget(self._sep())
         lay.addLayout(self._build_roblox_row())
@@ -363,7 +371,7 @@ class ClickerWindow(QWidget):
 
         return row
 
-    def _build_mode_row(self) -> QHBoxLayout:
+    def _build_hold_toggle_row(self) -> QHBoxLayout:
         row = QHBoxLayout()
         row.setSpacing(8)
 
@@ -537,7 +545,6 @@ class ClickerWindow(QWidget):
         url_row = QHBoxLayout()
         url_row.setSpacing(6)
 
-        from PySide6.QtWidgets import QLineEdit
         self._url_input = QLineEdit()
         self._url_input.setPlaceholderText("Paste URL (YouTube, SoundCloud...)")
         self._url_input.setFixedHeight(30)
@@ -572,7 +579,7 @@ class ClickerWindow(QWidget):
         # progress slider
         self._progress_slider = QSlider(Qt.Horizontal)
         self._progress_slider.setRange(0, 0)
-        self._progress_slider.setFixedHeight(16)
+        self._progress_slider.setFixedHeight(20)
         lay.addWidget(self._progress_slider)
 
         # time labels
@@ -586,34 +593,46 @@ class ClickerWindow(QWidget):
         time_row.addWidget(self._time_total)
         lay.addLayout(time_row)
 
-        # controls row
+        # controls row: Play | Pause | Stop | Volume
         ctrl_row = QHBoxLayout()
-        ctrl_row.setSpacing(8)
+        ctrl_row.setSpacing(6)
 
-        self._play_btn = GlowButton("▶", self)
+        self._play_btn = GlowButton("Play", self)
         self._play_btn.setObjectName("primary")
         self._play_btn.setCursor(Qt.PointingHandCursor)
-        self._play_btn.setFixedSize(36, 36)
+        self._play_btn.setFixedHeight(32)
+        self._play_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         ctrl_row.addWidget(self._play_btn)
 
-        self._stop_btn = GlowButton("■", self)
+        self._pause_btn = GlowButton("Pause", self)
+        self._pause_btn.setCursor(Qt.PointingHandCursor)
+        self._pause_btn.setFixedHeight(32)
+        self._pause_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        ctrl_row.addWidget(self._pause_btn)
+
+        self._stop_btn = GlowButton("Stop", self)
         self._stop_btn.setCursor(Qt.PointingHandCursor)
-        self._stop_btn.setFixedSize(36, 36)
+        self._stop_btn.setFixedHeight(32)
+        self._stop_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         ctrl_row.addWidget(self._stop_btn)
 
-        ctrl_row.addSpacing(8)
+        lay.addLayout(ctrl_row)
 
-        vol_lbl = QLabel("Vol")
-        vol_lbl.setObjectName("dim")
-        ctrl_row.addWidget(vol_lbl)
+        # volume row
+        vol_row = QHBoxLayout()
+        vol_row.setSpacing(8)
+
+        vol_lbl = QLabel("Volume")
+        vol_lbl.setObjectName("sec")
+        vol_row.addWidget(vol_lbl)
 
         self._volume_slider = QSlider(Qt.Horizontal)
         self._volume_slider.setRange(0, 100)
         self._volume_slider.setValue(50)
-        self._volume_slider.setFixedHeight(16)
-        ctrl_row.addWidget(self._volume_slider)
+        self._volume_slider.setFixedHeight(20)
+        vol_row.addWidget(self._volume_slider)
 
-        lay.addLayout(ctrl_row)
+        lay.addLayout(vol_row)
 
         # supported sites info
         info = QLabel(
@@ -660,13 +679,12 @@ class ClickerWindow(QWidget):
 
     def _connect_signals(self) -> None:
         self._theme_btn.clicked.connect(self._show_theme_menu)
-        self._discord_btn.clicked.connect(self._copy_discord)
         self._bg_btn.clicked.connect(self._show_bg_menu)
 
         self._page_tabs.mode_changed.connect(self._on_page_changed)
 
         # clicker
-        self._mode_tabs.mode_changed.connect(self._on_mode_changed)
+        self._mode_btn.clicked.connect(self._show_mode_menu)
         self._cps_spin.valueChanged.connect(self._on_cps_changed)
         self._min_spin.valueChanged.connect(self._on_range_changed)
         self._max_spin.valueChanged.connect(self._on_range_changed)
@@ -702,7 +720,8 @@ class ClickerWindow(QWidget):
         # music
         self._url_load_btn.clicked.connect(self._music_load_url)
         self._file_load_btn.clicked.connect(self._music_load_file)
-        self._play_btn.clicked.connect(self._music_player.toggle_play_pause)
+        self._play_btn.clicked.connect(self._music_player.play)
+        self._pause_btn.clicked.connect(self._music_player.pause)
         self._stop_btn.clicked.connect(self._music_player.stop)
         self._volume_slider.valueChanged.connect(
             lambda v: self._music_player.set_volume(v / 100.0)
@@ -745,14 +764,6 @@ class ClickerWindow(QWidget):
         for w in self.findChildren(GlowButton):
             w.set_glow_color(QColor(t["primary"]))
 
-        discord_color = QColor(t.get("discord", "#5865F2"))
-        self._discord_btn.set_glow_color(discord_color)
-
-    def _copy_discord(self) -> None:
-        clipboard = QApplication.clipboard()
-        clipboard.setText("123.456.789.100")
-        self._toast.show_message("Discord copied!")
-
     def _show_bg_menu(self) -> None:
         menu = QMenu(self)
         menu.addAction("Set Background").triggered.connect(self._set_custom_bg)
@@ -774,11 +785,22 @@ class ClickerWindow(QWidget):
     def _clear_custom_bg(self) -> None:
         self._container.clear_background()
 
-    def _on_mode_changed(self, mode: str) -> None:
-        mode_lower = mode.lower()
-        self._engine.set_mode(mode_lower)
+    # ── Mode dropdown ────────────────────────────────────────────
 
-        is_mixed = mode_lower == "mixed"
+    def _show_mode_menu(self) -> None:
+        menu = QMenu(self)
+        for mode in ("Smooth", "Insta", "Mixed"):
+            act = menu.addAction(mode)
+            act.triggered.connect(lambda checked=False, m=mode: self._set_click_mode(m))
+        pos = self._mode_btn.mapToGlobal(self._mode_btn.rect().bottomLeft())
+        menu.exec(pos)
+
+    def _set_click_mode(self, mode: str) -> None:
+        self._current_mode = mode.lower()
+        self._mode_btn.setText(mode)
+        self._engine.set_mode(self._current_mode)
+
+        is_mixed = self._current_mode == "mixed"
         self._mixed_card.setVisible(is_mixed)
         self._cps_widget.setVisible(not is_mixed)
         self._update_target_label()
@@ -801,8 +823,7 @@ class ClickerWindow(QWidget):
         self._update_target_label()
 
     def _update_target_label(self) -> None:
-        mode = self._mode_tabs.current().lower()
-        if mode == "mixed":
+        if self._current_mode == "mixed":
             self._target_label.setText(
                 f"Target: {self._min_spin.value()} – {self._max_spin.value()} CPS"
             )
@@ -1020,12 +1041,14 @@ class ClickerWindow(QWidget):
 
     def _on_playback_state(self, state: str) -> None:
         if state == "playing":
-            self._play_btn.setText("❚❚")
+            self._play_btn.setObjectName("modeTabActive")
         else:
-            self._play_btn.setText("▶")
+            self._play_btn.setObjectName("primary")
+        self._play_btn.style().unpolish(self._play_btn)
+        self._play_btn.style().polish(self._play_btn)
 
     def _on_music_error(self, msg: str) -> None:
-        self._toast.show_message(f"Music: {msg[:30]}")
+        self._toast.show_message(f"Error: {msg[:30]}")
 
     def _on_music_loading(self, loading: bool) -> None:
         if loading:

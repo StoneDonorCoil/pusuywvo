@@ -58,33 +58,32 @@ LIGHT = {
     "toast_bg": "rgba(255,255,255,0.95)",
 }
 
-MIDNIGHT = {
-    "name": "Midnight",
-    "bg": "#0a0e1a",
-    "surface": "#111827",
-    "surface_hover": "#1a2236",
-    "surface_alt": "#141c2e",
-    "primary": "#3b82f6",
-    "primary_hover": "#60a5fa",
-    "primary_glow": "rgba(59,130,246,0.40)",
-    "primary_glow_strong": "rgba(59,130,246,0.70)",
-    "text": "#e2e8f0",
-    "text_sec": "#94a3b8",
-    "text_dim": "#475569",
-    "border": "#1e293b",
-    "input_bg": "#0f172a",
-    "input_border": "#1e293b",
-    "active_bg": "#1e3a5f",
-    "toggle_off": "#334155",
-    "toggle_on": "#3b82f6",
+SUNSET = {
+    "name": "Sunset",
+    "bg": "#1a1008",
+    "surface": "#231a10",
+    "surface_hover": "#2e2218",
+    "surface_alt": "#1f1610",
+    "primary": "#f59e0b",
+    "primary_hover": "#fbbf24",
+    "primary_glow": "rgba(245,158,11,0.40)",
+    "primary_glow_strong": "rgba(245,158,11,0.70)",
+    "text": "#fef3c7",
+    "text_sec": "#b89a60",
+    "text_dim": "#6b5b3a",
+    "border": "#3a2a14",
+    "input_bg": "#150e08",
+    "input_border": "#3a2a14",
+    "active_bg": "#3a2a18",
+    "toggle_off": "#3a2a14",
+    "toggle_on": "#f59e0b",
     "thumb": "#ffffff",
-    "danger": "#f87171",
+    "danger": "#ef4444",
     "success": "#34d399",
-    "card_shadow": "rgba(0,0,0,0.35)",
-    "scroll_bg": "#0f172a",
-    "scroll_handle": "#334155",
-    "discord": "#5865F2",
-    "toast_bg": "rgba(15,23,42,0.95)",
+    "card_shadow": "rgba(0,0,0,0.3)",
+    "scroll_bg": "#150e08",
+    "scroll_handle": "#3a2a14",
+    "toast_bg": "rgba(35,26,16,0.95)",
 }
 
 ROSE = {
@@ -145,7 +144,7 @@ FOREST = {
     "toast_bg": "rgba(17,32,24,0.95)",
 }
 
-ALL_THEMES = [DARK, LIGHT, MIDNIGHT, ROSE, FOREST]
+ALL_THEMES = [DARK, LIGHT, SUNSET, ROSE, FOREST]
 THEME_NAMES = [t["name"] for t in ALL_THEMES]
 
 
@@ -283,20 +282,6 @@ def build_stylesheet(t: dict) -> str:
         background-color: {t['surface_hover']};
         border-color: {t['primary']};
     }}
-    QPushButton#discordBtn {{
-        background-color: {t['discord']};
-        color: #ffffff;
-        border: none;
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 10px;
-        font-weight: 600;
-        min-height: 26px;
-        max-height: 26px;
-    }}
-    QPushButton#discordBtn:hover {{
-        background-color: #4752c4;
-    }}
     QPushButton#closeBtn {{
         background-color: transparent;
         border: none;
@@ -400,6 +385,24 @@ def build_stylesheet(t: dict) -> str:
     }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
         height: 0px;
+    }}
+    QSlider::groove:horizontal {{
+        border: none;
+        height: 4px;
+        background: {t['input_border']};
+        border-radius: 2px;
+    }}
+    QSlider::handle:horizontal {{
+        background: {t['primary']};
+        border: none;
+        width: 12px;
+        height: 12px;
+        margin: -4px 0;
+        border-radius: 6px;
+    }}
+    QSlider::sub-page:horizontal {{
+        background: {t['primary']};
+        border-radius: 2px;
     }}
     QMenu {{
         background-color: {t['surface']};
