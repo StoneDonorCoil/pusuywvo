@@ -7,9 +7,10 @@ from PySide6.QtCore import (
     QPropertyAnimation,
     QSize,
     Qt,
+    QTimer,
     Signal,
 )
-from PySide6.QtGui import QBrush, QColor, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QPainter
 from PySide6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
@@ -17,9 +18,15 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSpinBox,
-    QVBoxLayout,
     QWidget,
 )
+
+
+class NoScrollSpinBox(QSpinBox):
+    """SpinBox that ignores mouse wheel events."""
+
+    def wheelEvent(self, event) -> None:
+        event.ignore()
 
 
 class GlowButton(QPushButton):
@@ -35,7 +42,7 @@ class GlowButton(QPushButton):
         self.setGraphicsEffect(self._shadow)
 
         self._anim = QPropertyAnimation(self._shadow, b"blurRadius")
-        self._anim.setDuration(220)
+        self._anim.setDuration(180)
         self._anim.setEasingCurve(QEasingCurve.OutCubic)
 
     def set_glow_color(self, color: QColor) -> None:
@@ -45,7 +52,7 @@ class GlowButton(QPushButton):
     def enterEvent(self, event) -> None:
         self._anim.stop()
         self._anim.setStartValue(self._shadow.blurRadius())
-        self._anim.setEndValue(18)
+        self._anim.setEndValue(12)
         self._anim.start()
         super().enterEvent(event)
 
@@ -108,7 +115,7 @@ class AnimatedToggle(QWidget):
 
         self._glow_anim.stop()
         self._glow_anim.setStartValue(self._glow.blurRadius())
-        self._glow_anim.setEndValue(14 if v else 0)
+        self._glow_anim.setEndValue(10 if v else 0)
         self._glow_anim.start()
 
         if emit:
@@ -240,7 +247,7 @@ class MacroEntryWidget(QWidget):
     delete_clicked = Signal(int)
     delay_changed = Signal(int, int)  # (index, delay_ms)
 
-    def __init__(self, index: int, key_name: str, delay_ms: int = 50,
+    def __init__(self, index: int, key_name: str, delay_ms: int = 1,
                  parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._index = index
@@ -260,7 +267,7 @@ class MacroEntryWidget(QWidget):
         self._key_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._key_label)
 
-        self._delay_spin = QSpinBox()
+        self._delay_spin = NoScrollSpinBox()
         self._delay_spin.setRange(1, 99999)
         self._delay_spin.setValue(delay_ms)
         self._delay_spin.setSuffix(" ms")
@@ -289,3 +296,46 @@ class MacroEntryWidget(QWidget):
 
     def get_key_name(self) -> str:
         return self._key_label.text()
+
+
+class ToastNotification(QLabel):
+    """Animated toast that fades in and out within parent."""
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setObjectName("toast")
+        self.setAlignment(Qt.AlignCenter)
+        self.setFixedHeight(36)
+        self.hide()
+
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        self._opacity_effect = QGraphicsOpacityEffect(self)
+        self._opacity_effect.setOpacity(0.0)
+        self.setGraphicsEffect(self._opacity_effect)
+
+    def show_message(self, text: str, duration: int = 1800) -> None:
+        self.setText(text)
+        pw = self.parent().width()
+        w = min(220, pw - 40)
+        self.setFixedWidth(w)
+        self.move((pw - w) // 2, self.parent().height() - 55)
+        self.show()
+        self.raise_()
+
+        self._fade_in = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._fade_in.setDuration(200)
+        self._fade_in.setStartValue(0.0)
+        self._fade_in.setEndValue(1.0)
+        self._fade_in.setEasingCurve(QEasingCurve.OutCubic)
+        self._fade_in.start()
+
+        QTimer.singleShot(duration, self._fade_out)
+
+    def _fade_out(self) -> None:
+        self._anim_out = QPropertyAnimation(self._opacity_effect, b"opacity")
+        self._anim_out.setDuration(400)
+        self._anim_out.setStartValue(1.0)
+        self._anim_out.setEndValue(0.0)
+        self._anim_out.setEasingCurve(QEasingCurve.InCubic)
+        self._anim_out.finished.connect(self.hide)
+        self._anim_out.start()

@@ -86,7 +86,7 @@ echo.
 call :header "INSTALLING DEPENDENCIES"
 echo.
 
-set "TOTAL=2"
+set "TOTAL=3"
 set "DONE=0"
 
 :: PySide6
@@ -115,6 +115,19 @@ if %errorlevel% neq 0 (
 )
 set /a DONE+=1
 call :status "+" "G" "pynput installed   [!DONE!/!TOTAL!]"
+echo.
+
+:: yt-dlp
+call :status ">" "C" "Installing yt-dlp (music support)..."
+echo.
+call :progressBar 35 "yt-dlp"
+python -m pip install yt-dlp --quiet 2>nul
+if %errorlevel% neq 0 (
+    call :status "!" "Y" "yt-dlp install failed (music URLs won't work)"
+) else (
+    set /a DONE+=1
+    call :status "+" "G" "yt-dlp installed   [!DONE!/!TOTAL!]"
+)
 echo.
 
 :: ── Step 4: Verify ──────────────────────────────────────────

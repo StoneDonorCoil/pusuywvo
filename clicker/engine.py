@@ -248,6 +248,15 @@ class BindListener(QObject):
                 return a.char == b.char
         return False
 
+    def clear_bind(self, target: str) -> None:
+        with self._lock:
+            if target == "click":
+                self._click_bind = None
+                self._click_bind_type = ""
+            elif target == "hide":
+                self._hide_bind = None
+                self._hide_bind_type = ""
+
     def shutdown(self) -> None:
         self._kb_listener.stop()
         self._ms_listener.stop()
@@ -278,7 +287,7 @@ class ClickEngine(QObject):
         self._thread: threading.Thread | None = None
 
         self._cps_timer = QTimer()
-        self._cps_timer.setInterval(80)
+        self._cps_timer.setInterval(50)
         self._cps_timer.timeout.connect(self._emit_cps)
         self._cps_timer.start()
 
@@ -390,10 +399,12 @@ class ClickEngine(QObject):
 
     def _emit_cps(self) -> None:
         now = time.perf_counter()
-        cutoff = now - 1.0
+        window = 0.5
+        cutoff = now - window
         while self._click_times and self._click_times[0] < cutoff:
             self._click_times.popleft()
-        self.cps_update.emit(float(len(self._click_times)))
+        cps = len(self._click_times) / window
+        self.cps_update.emit(cps)
 
 
 class MacroEngine(QObject):
